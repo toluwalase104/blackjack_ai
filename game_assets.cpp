@@ -3,6 +3,8 @@
 using std::cout;
 // using namespace game_assets;
 
+game_assets::Card::Card(){}
+
 game_assets::Card::Card(int id, CardVal value, Suite suite) :
         id(id), value(value), suite(suite) {}
 
