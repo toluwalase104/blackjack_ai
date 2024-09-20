@@ -125,6 +125,7 @@ environment::EnvironmentHandler::EnvironmentHandler() {
     playerTotal = 0;
     dealerTotal = 0;
     numberOfDeals = 0;
+    playerChoseToHit = true;
 
     // Defines the amount of space the deck will needed
     deck.reserve(60);

@@ -13,7 +13,7 @@ int main() {
     srand(time(0));
     cout << "Enter the number of simulations: ";
     int numberOfSimulations;
-    std::cin >> numberOfSimulations;
+    cin >> numberOfSimulations;
     cout << "\n";
 
     // Clips the number of simulations to be between one and twenty

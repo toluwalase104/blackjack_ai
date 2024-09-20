@@ -79,7 +79,7 @@ namespace environment {
 
         // Player initially always hits when they choose stand
         // Their choice is locked until the end of the episode
-        bool playerChoseToHit = true;
+        bool playerChoseToHit;
         int dealerTotal, playerTotal;
 
     public:
