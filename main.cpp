@@ -2,7 +2,7 @@
 #include <chrono>
 
 #include "agents.hpp"
-#include "state_action_function.hpp"
+#include "function.hpp"
 
 using std::cout;
 using std::cin;
@@ -12,34 +12,37 @@ using StateAndAction = std::pair<environment::GameState, environment::Action>;
 using namespace std::chrono;
 // using namespace environment;
 
-void updateQValues(
-    state_action_function::Function &Q, 
-    state_action_function::Function &N, 
-    state_action_function::Function &returnSums){
+void updateQValues( function::StateActionFunction &Q,
+                    function::StateActionFunction &N, 
+                    function::StateActionFunction &returnSums){
         
     float *visitCountPtr = nullptr,
-            *QValuePtr = nullptr,
-            *returnSumPtr = nullptr;
+          *QValuePtr = nullptr,
+          *returnSumPtr = nullptr;
 
     auto pointersAreValid = [&](){
-        return  visitCountPtr != nullptr && 
-                QValuePtr != nullptr &&
-                returnSumPtr != nullptr;
+        return  (
+            visitCountPtr != nullptr && 
+            QValuePtr != nullptr &&
+            returnSumPtr != nullptr
+        );
     };
 
-    for (int i = 0; i < 22; ++i){
-        for (int j = 0; j < 22; ++j){
-            for (int k = 0; k < 2; ++k){
+    for (int i = 12; i <= environment::MAX_PLAYER_TOTAL; ++i){
+        for (int j = 1; j <= environment::MAX_DEALER_SHOWING; ++j){
+            for (int k = 0; k < environment::MAX_POSSIBLE_ACTIONS; ++k){
+
                 visitCountPtr = N.getImage(i, j, k), 
                 returnSumPtr = returnSums.getImage(i, j, k),
                 QValuePtr = Q.getImage(i, j, k);
 
                 // If the pointers are valid and the count is none zero
-                // Then we set the QValue to be average returnSum over all visits
+                // Then we set the QValue to be the average returnSum over all visits
                 if (pointersAreValid() && (*visitCountPtr) > 0){
                     *QValuePtr = (*returnSumPtr) / (*visitCountPtr);
                     cout << (k ? "h":"s")<< " -> (S = {p: " << i << ", d: " << j << "}; Q = " << *QValuePtr << ") ";
                 }
+
             }
         }
         cout << "\n";
@@ -48,19 +51,41 @@ void updateQValues(
 
 /* Extracts the game outcome and determines the reward value */
 float generateRewardValue(environment::GameResult outcome){
-    if (outcome == environment::GameResult::PlayerWin){ // Win
+    if (outcome == environment::GameResult::PLAYER_WIN){ // Win
         return 1.0f;
-    } else if (outcome == environment::GameResult::DealerWin){ // Loss
+    } else if (outcome == environment::GameResult::DEALER_WIN){ // Loss
         return -1.0f;
     } else { // Draw
         return 0.0f;
     }
 }
 
+
+/* 
+ Takes a state and  whether it was visited with an action previously and determines whether it should be recorded.
+ States (and their related actions therein) should only be recorded if:
+    * The state and action pair has not been visited previously
+    * The player total is greater than or equal to 12 as a score under 12 is impossible to go bust on,
+        so no agent decision is necessary,
+    * The dealer is only showing one card, as the agent can make no further decisions after the dealer starts to
+        reveal their hand,
+ */
+bool stateAndActionShouldBeRecorded(bool visited, environment::GameState state){
+    return (
+        !visited && 
+        !state.allCardsFaceup() && 
+        state.getPlayerTotal() >= 12    
+    );
+}
+
 int main() {
     srand(time(0));
 
-    state_action_function::Function Q, N, returnSums, stateActionVisited;
+    function::StateActionFunction Q, N, returnSums, stateActionVisited;
+    
+    /* gamma is the discount factor that reduces the value of a reward over time */
+    /* alpha is the learning factor that allows the agent to develop its own policy over time */
+    float gamma = 0.90f, alpha;
 
     cout << "Enter the number of simulations: ";
     int numberOfSimulations;
@@ -71,7 +96,7 @@ int main() {
     cout.setstate(std::ios_base::failbit);
 
     // Clips the number of simulations to be between one and twenty
-    numberOfSimulations = std::max(1, std::min(numberOfSimulations, 10000));
+    numberOfSimulations = std::max(1, std::min(numberOfSimulations, 500000));
 
     // Initialise the passive agent
     agents::PassiveAgent agent;
@@ -95,20 +120,24 @@ int main() {
         agent.reset();
         // cout << testEnvironment.getCurrentState().getNumberOfSeenCards() << " cards seen.\n";
 
-        while (state.getOutcome() == environment::GameResult::Unfinished) {
+        while (state.getOutcome() == environment::GameResult::UNFINISHED) {
             // Consider the state and return the decision made
             agentDecision = agent.considerState(state);
             ++statesSeen;
             cout << "\n";
 
-            if (agentDecision == environment::Action::Hit){
+            if (agentDecision == environment::Action::HIT){
                 cout << "The agent chooses to hit.\n";
             } else {
                 cout << "The agent chooses to stand.\n";
             }
 
-            // Check whether it's the first visit
-            if (!*stateActionVisited(state, agentDecision)){
+            // Check whether it's the first visit and necessary to record
+            // (IFF one dealer card is face up and agent action is non obvious)
+            if ( stateActionVisited(state, agentDecision) != nullptr &&
+                 stateAndActionShouldBeRecorded(
+                    *stateActionVisited(state, agentDecision), state )   ){
+                
                 cout << "State not visited before" << "\n";
                 cout << "(N) Count before incrementing = " << *N(state, agentDecision) << "\n"; 
                 ++(*N(state, agentDecision));
@@ -116,6 +145,7 @@ int main() {
                 ++(*stateActionVisited(state, agentDecision));
 
                 visitedStatesAndActions.emplace_back(state, agentDecision);
+
             } else {
                 cout << "Visited before :\n";
                 cout << state << "\n";
@@ -124,7 +154,7 @@ int main() {
             testEnvironment.simulateNextRound(agentDecision);
             state = testEnvironment.getCurrentState();
 
-            if (i % 500 == 0){
+            if (i % 5000 == 0){
                 auto timeLog = high_resolution_clock::now();
                 auto duration = duration_cast<milliseconds>(timeLog - start);
 

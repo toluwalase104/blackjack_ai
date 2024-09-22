@@ -10,19 +10,19 @@ namespace game_assets{
     /*  Currently Aces are treated as just 1 so additional features
         need to be implemented to handle usable Aces. */
     enum class CardVal :int {
-        Ace = 1,
-        Two = 2, Three = 3, Four = 4,
-        Five = 5, Six = 6, Seven = 7,
-        Eight = 8, Nine = 9, Ten = 10,
-        Jack = 10, Queen = 10, King = 10
-    };//card_value;
+        ACE = 1,
+        TWO = 2, THREE = 3, FOUR = 4,
+        FIVE = 5, SIX = 6, SEVEN = 7,
+        EIGHT = 8, NINE = 9, TEN = 10,
+        JACK = 10, QUEEN = 10, KING = 10
+    };
 
     enum class Suite :char {
-        Hearts = 'H',
-        Diamonds = 'D',
-        Spades = 'S',
-        Clubs = 'C'
-    };//card_suite;
+        HEARTS = 'H',
+        DIAMONDS = 'D',
+        SPADES = 'S',
+        CLUBS = 'C'
+    };
 
     class Card {
     private:

@@ -13,12 +13,6 @@ namespace agents{
         Hit when below 12 with probability 100% because it is impossible to bust.
     */
     class PassiveAgent {
-    private:
-        /*  Q, N and returnSums store functions that keep track of the current state 
-            The state is represented by the cards currently in play by both us and the dealer
-            Holds current gameState and the action taken */
-        float discountFactor;
-        environment::Action action;
     public:
         PassiveAgent();
 
@@ -29,6 +23,9 @@ namespace agents{
         /* The agent resets its choice */
         virtual void reset();
 
+    private:
+        /* The action the agent chooses at a given moment */
+        environment::Action action;
     };
 }
 

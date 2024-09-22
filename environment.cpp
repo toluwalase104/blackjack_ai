@@ -9,7 +9,7 @@ environment::GameState::GameState() :
     playerTotal(0), dealerTotal(0), faceupTotal(0),
     dealerShowsAll(false),
     numberOfSeenCards(0),
-    outcome(GameResult::Unfinished) {
+    outcome(GameResult::UNFINISHED) {
         playerCards.reserve(60), dealerCards.reserve(60);
         playerCards.resize(52, 0), dealerCards.resize(52, 0);
 }
@@ -17,7 +17,7 @@ environment::GameState::GameState() :
 void environment::GameState::addCard(game_assets::Card card, bool forPlayer) {
     int cardID = card.getID();
 
-    // If seen do not add again
+    // If seen the card was seen do not add it again
     if (cardSeen(cardID)) {
         return;
     }
@@ -186,7 +186,7 @@ environment::EnvironmentHandler::EnvironmentHandler() {
         deck[i] = game_assets::Card(i, currentCardVal, currentSuite);
     }
 
-    simulateNextRound(environment::Action::Hit);
+    simulateNextRound(environment::Action::HIT);
 }
 
 /* Selects the index of an unseen card */
@@ -299,34 +299,34 @@ environment::GameResult environment::EnvironmentHandler::checkGameResult() {
     // If the dealer and player can still play, then the game has not reached an end state
     if (this->playerChoseToHit && this->playerTotal <= 21 && this->dealerTotal < 17) {
         cout << "\nPlayer says hit, Player hasn't bust yet and Dealer below 17; so the game continues.\n\n";
-        return environment::GameResult::Unfinished;
+        return environment::GameResult::UNFINISHED;
     }
 
     // If the dealer and player goes bust
     if (this->dealerTotal > 21 && this->playerTotal > 21) {
-        return environment::GameResult::MutualBust;
+        return environment::GameResult::MUTUAL_BUST;
     } else if (this->dealerTotal > 21) {
         // If the dealer busts then the player wins
-        return environment::GameResult::PlayerWin;
+        return environment::GameResult::PLAYER_WIN;
     } else if (this->playerTotal > 21) {
         // If the player busts then the dealer wins
-        return environment::GameResult::DealerWin;
+        return environment::GameResult::DEALER_WIN;
 
         // If the player chose to hit or the dealer must still hit then carry on
     } else if (this->playerChoseToHit || this->dealerTotal < 17) {
         cout << "\n" << "Player chose to hit (" << (this->playerChoseToHit ? "True" : "False") <<
             ") OR Dealer below 17(" << (this->dealerTotal < 17 ? "True" : "False") << "), so game continues \n\n";
             
-        return environment::GameResult::Unfinished;
+        return environment::GameResult::UNFINISHED;
 
         // Below here the player must have chosen to stand and the dealer can push no further
     } else if (this->playerTotal > this->dealerTotal) {
-        return environment::GameResult::PlayerWin;
+        return environment::GameResult::PLAYER_WIN;
     } else if (this->playerTotal < this->dealerTotal) {
-        return environment::GameResult::DealerWin;
+        return environment::GameResult::DEALER_WIN;
     } else {
         // Neither dealer nor player busted and neither can make a further move
-        return environment::GameResult::Push;
+        return environment::GameResult::PUSH;
     }
 }
 
@@ -334,7 +334,7 @@ environment::GameResult environment::EnvironmentHandler::checkGameResult() {
     It plays the next hand of the game, updates the player totals and  determines whether the game is over.*/
 environment::GameResult environment::EnvironmentHandler::simulateNextRound(environment::Action action) {
     // Take whether the agent chooses to hit or stand as input
-    this->playerChoseToHit &= (action == environment::Action::Hit);
+    this->playerChoseToHit &= (action == environment::Action::HIT);
 
     // When the player chooses to stand, the dealer reveals the face down card
     if (!this->playerChoseToHit){
@@ -373,19 +373,19 @@ std::ostream& operator<<(std::ostream& o, environment::GameState s) {
 
 std::ostream& operator<<(std::ostream& o, environment::GameResult r) {
     switch (r) {
-        case environment::GameResult::DealerWin:
+        case environment::GameResult::DEALER_WIN:
             cout << "The Dealer won\n";
             break;
-        case environment::GameResult::MutualBust:
+        case environment::GameResult::MUTUAL_BUST:
             cout << "Player and Dealer busted\n";
             break;
-        case environment::GameResult::Unfinished:
+        case environment::GameResult::UNFINISHED:
             cout << "The game is unfinished\n";
             break;
-        case environment::GameResult::Push:
+        case environment::GameResult::PUSH:
             cout << "Equal non-bust score\n";
             break;
-        case environment::GameResult::PlayerWin:
+        case environment::GameResult::PLAYER_WIN:
             cout << "The Player won\n";
             break;
         default:
@@ -395,7 +395,7 @@ std::ostream& operator<<(std::ostream& o, environment::GameResult r) {
 }
 
 std::ostream& operator<<(std::ostream& o, environment::Action a) {
-    if (a == environment::Action::Hit){
+    if (a == environment::Action::HIT){
         cout << "HIT" << "\n";
     } else {
         cout << "STAND" << "\n";

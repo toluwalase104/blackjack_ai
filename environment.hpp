@@ -14,6 +14,9 @@
 
 namespace environment {
     const int DECK_SIZE = 52;
+
+    const int MAX_PLAYER_TOTAL = 21, MAX_DEALER_SHOWING = 10, MAX_POSSIBLE_ACTIONS = 2;
+
     const std::string POSSIBLE_SUITES = "HDSC";
 
     inline float getRandomFloat() {
@@ -24,26 +27,21 @@ namespace environment {
         Mutual bust and push happen when the player and dealer both lose or both win respecetively
         Consider testing out what happens if you set mutaul bust and push equal to 0 or playing around with the reward values */
     enum class GameResult :int {
-        DealerWin = -2,     // Player lost
-        MutualBust = -1,    // Mutual loss
-        Unfinished = 0,     // Game unfinished
-        Push = 1,           // Mutual "win"
-        PlayerWin = 2       // Player won
+        DEALER_WIN = -2,     // Player lost
+        MUTUAL_BUST = -1,    // Mutual loss
+        UNFINISHED = 0,     // Game unfinished
+        PUSH = 1,           // Mutual "win"
+        PLAYER_WIN = 2       // Player won
     };//game_state;
 
-    /* Defines an enum for the agent action */
+    /* An enum for the agent action */
     enum class Action: bool{
-        Stand = false,
-        Hit = true
+        STAND = false,
+        HIT = true
     };
 
     /* Stores the essential data used by the model to determine the game's state */
     class GameState {
-    private:
-        std::vector<int> playerCards, dealerCards;
-        int playerTotal, dealerTotal, faceupTotal, numberOfSeenCards;
-        bool dealerShowsAll;
-        GameResult outcome;
     public:
         GameState();
 
@@ -77,24 +75,14 @@ namespace environment {
 
         bool operator==(GameState comparedState);
 
+    private:
+        std::vector<int> playerCards, dealerCards;
+        int playerTotal, dealerTotal, faceupTotal, numberOfSeenCards;
+        bool dealerShowsAll;
+        GameResult outcome;
     };
 
     class EnvironmentHandler {
-    private:
-        GameState currentState;
-
-        std::vector<game_assets::Card> deck;
-
-        std::vector<game_assets::Card> currentHand;
-
-        int numberOfDeals;
-        std::unordered_set<int> seenCards;
-
-        // Player initially always hits when they choose stand
-        // Their choice is locked until the end of the episode
-        bool playerChoseToHit;
-        int dealerTotal, playerTotal, faceupTotal;
-
     public:
         EnvironmentHandler();
 
@@ -114,6 +102,21 @@ namespace environment {
         GameResult simulateNextRound(Action action);
 
         GameState getCurrentState() const;
+
+    private:
+        GameState currentState;
+
+        std::vector<game_assets::Card> deck;
+
+        std::vector<game_assets::Card> currentHand;
+
+        int numberOfDeals;
+        std::unordered_set<int> seenCards;
+
+        // Player initially always hits when they choose stand
+        // Their choice is locked until the end of the episode
+        bool playerChoseToHit;
+        int dealerTotal, playerTotal, faceupTotal;
     };
 
 }

@@ -7,21 +7,19 @@ using std::vector;
 // using namespace agents;
 
 agents::PassiveAgent::PassiveAgent() {
-    cout << "Setting discount factor and hit value\n";
-    discountFactor = 0.90f;
-    action = environment::Action::Hit;
+    action = environment::Action::HIT;
 }
 
 /* Enacts the agents policy depending on a given state */ 
 environment::Action agents::PassiveAgent::policy(environment::GameState state) {
     // Once the agent chooses to stand it cannot choose otherwise until the game is over
-    if (action == environment::Action::Stand) {
-        return environment::Action::Stand;
+    if (action == environment::Action::STAND) {
+        return environment::Action::STAND;
     }
 
     // If the sum is less than 12 then the agent will always hit since it is impossible to bust
     if (state.getPlayerTotal() < 12) {
-        return environment::Action::Hit;
+        return environment::Action::HIT;
     }   
 
     float probability = environment::getRandomFloat();
@@ -49,5 +47,5 @@ environment::Action agents::PassiveAgent::considerState(environment::GameState s
 
 /* The agent resets its choice */
 void agents::PassiveAgent::reset() {
-    this->action = environment::Action::Hit;
+    this->action = environment::Action::HIT;
 }

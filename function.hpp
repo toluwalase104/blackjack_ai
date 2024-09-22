@@ -14,13 +14,22 @@
     AND THE PLAYER HAVE <= 52 CARDS COMBINED  */ 
 /* Maps state and an action pair to a value (the cumulative reward) */ 
 
-namespace state_action_function {
+namespace function {
 
-    using StateMatrix = std::array<std::array<std::array<float, 2>, 22>, 22>;
+    /*  3D array storing a state (represented by the player sum and dealer sum)
+        and an action represented by hit or stand.*/
+    using StateActionMatrix = 
+        std::array<
+            std::array<
+                std::array<float, 
+                    environment::MAX_POSSIBLE_ACTIONS
+                >, environment::MAX_DEALER_SHOWING + 1
+            >, environment::MAX_PLAYER_TOTAL + 1
+        >;
 
-    class Function{
+    class StateActionFunction{
         public:
-            Function();
+            StateActionFunction();
 
             /* Allows the state to be stored numerically */
             float* operator()(environment::GameState state, environment::Action action);
@@ -34,12 +43,12 @@ namespace state_action_function {
                 Stores rows for the player sum from i = 0 to i = 21,
                 Stores columns for the dealer sum from i = 0 to i = 21,
                 Stores the action taken during the state where 0 = stand and 1 = hit. */
-            StateMatrix mapping;
+            StateActionMatrix mapping;
 
     };
 
 }
 
-std::ostream& operator<<(std::ostream& o, state_action_function::Function &f);
+std::ostream& operator<<(std::ostream& o, function::StateActionFunction &f);
 
 #endif /* STATE_ACTION_FUNCTION_H */
