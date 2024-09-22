@@ -9,63 +9,45 @@ using std::vector;
 agents::PassiveAgent::PassiveAgent() {
     cout << "Setting discount factor and hit value\n";
     discountFactor = 0.90f;
-    hit = true;
+    action = environment::Action::Hit;
 }
 
-bool agents::PassiveAgent::policy(environment::GameState state) {
+/* Enacts the agents policy depending on a given state */ 
+environment::Action agents::PassiveAgent::policy(environment::GameState state) {
     // Once the agent chooses to stand it cannot choose otherwise until the game is over
-    if (!hit) {
-        return false;
+    if (action == environment::Action::Stand) {
+        return environment::Action::Stand;
     }
+
+    // If the sum is less than 12 then the agent will always hit since it is impossible to bust
+    if (state.getPlayerTotal() < 12) {
+        return environment::Action::Hit;
+    }   
 
     float probability = environment::getRandomFloat();
     cout << "\nProbability value is -> " << probability << "\n";
     // If player total is less than 18 then choose to hit with probability 80% 
     if (state.getPlayerTotal() < 18) {
         cout << "Player Total is under 18, agent is biased towards hitting\n";
-        hit = (probability <= 0.80f);
+        action = environment::Action(probability <= 0.80f);
     } else {
         cout << "Player Total is greater than or equal to 18, agent is biased towards standing\n";
         // If player total is greater than 18 then choose to hit with probability 20%
-        hit = (probability > 0.80f);
+        action = environment::Action(probability > 0.80f);
     }
-
-    return hit;
-}
-
-void agents::PassiveAgent::addDecision(environment::GameState state, bool action) {
-    auto it = std::find_if(N.begin(), N.end(),
-        [&](std::pair<environment::GameState, bool> p) {
-            return p.first == state && p.second == action;
-        }
-    );
-
-    // If duplicate not found then add to vector
-    if (it == N.end()) {
-        cout << "The state-action pair has not been seen before so the agent stores it\n";
-        N.emplace_back(state, action);
-    } else {
-        cout << "The state-action pair has not been seen before so the agent stores it\n";
-    }
-}
-
-bool agents::PassiveAgent::considerNextState(environment::GameState state) {
-    bool action = policy(state);
-
-    addDecision(state, action);
 
     return action;
 }
 
-vector<std::pair<environment::GameState, bool>> agents::PassiveAgent::getVisitCounts() {
-    return N;
-}
 
-vector<std::pair<environment::GameState, bool>> agents::PassiveAgent::getReturnSums() {
-    return returnSums;
+/* Considers a given state and returns the action decided by the agent in that state */
+environment::Action agents::PassiveAgent::considerState(environment::GameState state) {
+    environment::Action action = policy(state);
+
+    return action;
 }
 
 /* The agent resets its choice */
 void agents::PassiveAgent::reset() {
-    this->hit = true;
+    this->action = environment::Action::Hit;
 }
