@@ -37,12 +37,12 @@ void updateQValues(
                 // If the pointers are valid and the count is none zero
                 // Then we set the QValue to be average returnSum over all visits
                 if (pointersAreValid() && (*visitCountPtr) > 0){
-                    cout << "QValue before = " << *QValuePtr << "\n";
                     *QValuePtr = (*returnSumPtr) / (*visitCountPtr);
-                    cout << "QValue after = " << *Q.getImage(i, j, k) << "\n";
+                    cout << (k ? "h":"s")<< " -> (S = {p: " << i << ", d: " << j << "}; Q = " << *QValuePtr << ") ";
                 }
             }
         }
+        cout << "\n";
     }
 }
 
@@ -85,6 +85,8 @@ int main() {
 
     int statesSeen = 0;
 
+    auto start = high_resolution_clock::now();
+
     for (int i = 1; i <= numberOfSimulations; ++i) {
         cout << "SIMULATION #" << i << ":\n";
         environment::EnvironmentHandler testEnvironment;
@@ -121,6 +123,13 @@ int main() {
 
             testEnvironment.simulateNextRound(agentDecision);
             state = testEnvironment.getCurrentState();
+
+            if (i % 500 == 0){
+                auto timeLog = high_resolution_clock::now();
+                auto duration = duration_cast<milliseconds>(timeLog - start);
+
+                std::clog << i << " simulations completed in " << duration.count() << "milliseconds\n\n";
+            }
         }
 
         // G holds the reward of the current episode, 1 for win, 0 for draw, 1 for loss based on the game outcome

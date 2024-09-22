@@ -28,19 +28,6 @@ float* state_action_function::Function::getImage(int i, int j, int k){
             return nullptr;
     }
 
-    // // Points to the specified row in memory
-    // auto rowPointer = this->mapping.begin() + i;
-
-    // // Points to the specified column in memory 
-    // auto columnPointer = (*rowPointer).begin() + j;
-
-    // // Points to the specified function output value in memory
-    // auto imagePointer = (*columnPointer).begin() + k;
-
-    // // Stores the value pointed to by the imagePointer
-    // static float imageValue = *imagePointer;
-
-    // return &imageValue;
     return &this->mapping[i][j][k];
 }
 // The initial significantly harder to read code for the above function
