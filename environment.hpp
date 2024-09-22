@@ -31,11 +31,18 @@ namespace environment {
         PlayerWin = 2       // Player won
     };//game_state;
 
+    /* Defines an enum for the agent action */
+    enum class Action: bool{
+        Stand = false,
+        Hit = true
+    };
+
     /* Stores the essential data used by the model to determine the game's state */
     class GameState {
     private:
-        std::set<int> playerCards, dealerCards;
-        int playerTotal, dealerTotal;
+        std::vector<int> playerCards, dealerCards;
+        int playerTotal, dealerTotal, faceupTotal, numberOfSeenCards;
+        bool dealerShowsAll;
         GameResult outcome;
     public:
         GameState();
@@ -46,8 +53,10 @@ namespace environment {
 
         int getDealerTotal() const;
 
+        int getFaceupTotal() const;
+
         /* Returns all cards seen so far, combined into one set */
-        std::set<int> getSeenCards() const;
+        std::vector<int> getSeenCards() const;
 
         void setOutcome(GameResult outcome);
 
@@ -59,6 +68,10 @@ namespace environment {
 
         int getNumberOfSeenCards() const;
 
+        void showFacedown();
+
+        bool allCardsFaceup();
+        
         /* Allows the pretty printing of currently stored cards */
         std::string stringifyCards();
 
@@ -80,7 +93,7 @@ namespace environment {
         // Player initially always hits when they choose stand
         // Their choice is locked until the end of the episode
         bool playerChoseToHit;
-        int dealerTotal, playerTotal;
+        int dealerTotal, playerTotal, faceupTotal;
 
     public:
         EnvironmentHandler();
@@ -98,7 +111,7 @@ namespace environment {
 
         GameResult checkGameResult();
 
-        GameResult simulateNextRound(bool hit);
+        GameResult simulateNextRound(Action action);
 
         GameState getCurrentState() const;
     };
@@ -107,5 +120,6 @@ namespace environment {
 
 std::ostream& operator<<(std::ostream& o, environment::GameResult r);
 std::ostream& operator<<(std::ostream& o, environment::GameState s);
+std::ostream& operator<<(std::ostream& o, environment::Action a);
 
 #endif /* ENVIRONMENT_H */
