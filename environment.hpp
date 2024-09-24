@@ -32,9 +32,9 @@ namespace environment {
         UNFINISHED = 0,     // Game unfinished
         PUSH = 1,           // Mutual "win"
         PLAYER_WIN = 2       // Player won
-    };//game_state;
+    };
 
-    /* An enum for the agent action */
+    /* The possible actions an agent can make */
     enum class Action: bool{
         STAND = false,
         HIT = true

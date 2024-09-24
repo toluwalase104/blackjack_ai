@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "agents.hpp"
 
 using std::cout;
@@ -6,12 +8,15 @@ using std::vector;
 // using namespace environment;
 // using namespace agents;
 
-agents::PassiveAgent::PassiveAgent() {
-    action = environment::Action::HIT;
+agents::Agent::Agent(){
+    cout << "Base constructor invoked Resetting action to hit in abstract base class\n\n";
+    this->reset();
 }
 
-/* Enacts the agents policy depending on a given state */ 
-environment::Action agents::PassiveAgent::policy(environment::GameState state) {
+agents::PassiveAgent::PassiveAgent() {}
+
+/* Passive agent performs no actions other than applying the fixed-policy to a given state */
+environment::Action agents::PassiveAgent::considerState(environment::GameState state){
     // Once the agent chooses to stand it cannot choose otherwise until the game is over
     if (action == environment::Action::STAND) {
         return environment::Action::STAND;
@@ -22,6 +27,11 @@ environment::Action agents::PassiveAgent::policy(environment::GameState state) {
         return environment::Action::HIT;
     }   
 
+    return this->policy(state);
+}
+
+/* Enacts the agents policy depending on a given state */ 
+environment::Action agents::PassiveAgent::policy(environment::GameState state) {
     float probability = environment::getRandomFloat();
     cout << "\nProbability value is -> " << probability << "\n";
     // If player total is less than 18 then choose to hit with probability 80% 
@@ -37,15 +47,77 @@ environment::Action agents::PassiveAgent::policy(environment::GameState state) {
     return action;
 }
 
+agents::GreedyAgent::GreedyAgent(
+    float epsilon, 
+    float decayRate
+): epsilon(epsilon), decayRate(decayRate), hitValue(0.0), standValue(0.0){}
 
-/* Considers a given state and returns the action decided by the agent in that state */
-environment::Action agents::PassiveAgent::considerState(environment::GameState state) {
-    environment::Action action = policy(state);
+
+/*  Apply the policy to the given state.
+
+    Decrease the size of epsilon after each decision, so as the agent handles more 
+    simulations the probability of the agent choosing randomly decreases, exponentially.
+
+    Starting with epsilon = 1 and a decay rate of 0.999, epsilon will equal EPSILON_MIN (0.01) after
+    considering ~5000 states.
+*/
+environment::Action agents::GreedyAgent::considerState(environment::GameState state){
+        // Once the agent chooses to stand it cannot choose otherwise until the game is over
+    if (action == environment::Action::STAND) {
+        return environment::Action::STAND;
+    }
+
+    // If the sum is less than 12 then the agent will always hit since it is impossible to bust
+    if (state.getPlayerTotal() < 12) {
+        return environment::Action::HIT;
+    }
+    // The policy is only applied and the exploration factor is only updated if there is an actual decision to be made
+    
+    environment::Action nextAction = this->policy(state);
+
+    epsilon = std::max(epsilon * decayRate, EPSILON_MIN);
 
     return action;
 }
 
-/* The agent resets its choice */
-void agents::PassiveAgent::reset() {
-    this->action = environment::Action::HIT;
+void agents::GreedyAgent::setActionValues(float hitValue, float standValue){
+    this->hitValue = hitValue;
+    this->standValue = standValue;
+}
+
+/*  The policy function uses epsilon-greedy to determine whether to explore or exploit
+    upond receiving any given state.
+
+    For each input state, it can choose to:
+
+    * Use its past knowledge of the best action 
+    (exploitation) 
+    * Choose an action at random to "get a better idea" of how to handle the state in the future 
+    (exploration)
+    
+    Initially when epsilon = 1, the probability of choosing best is 0.5 (completely random)
+        i.e. = (1 - 1) + 1 / 2 = 0 + 1/2 = 1/2
+
+    As epsilon tends towards 0, the probability of choosing the best action tends to 1 (stops at 0.99).
+*/
+environment::Action agents::GreedyAgent::policy(environment::GameState state){
+    // The probability of choosing the best action tends towards 1 as the number of states seen increases
+    float probabilityOfChoosingBest = (1.0 - epsilon) + epsilon / environment::MAX_POSSIBLE_ACTIONS;
+
+    /* The probability of exploring is chosen at random */
+    float probabilityOfExploring = environment::getRandomFloat();
+
+    // If the agent chooses to explore over choosing what is optimal, then choose an action at random
+    if (probabilityOfExploring > probabilityOfChoosingBest){
+        action = rand() % 2 
+            ? environment::Action::HIT 
+            : environment::Action::STAND;
+    // Otherwise set the agent's chosen action to whatever is most profitable
+    } else if (hitValue > standValue){
+        action = environment::Action::HIT;
+    } else {
+        action = environment::Action::STAND;
+    }
+
+    return action;
 }

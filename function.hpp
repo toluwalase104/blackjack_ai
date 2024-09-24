@@ -16,15 +16,17 @@
 
 namespace function {
 
-    /*  3D array storing a state (represented by the player sum and dealer sum)
-        and an action represented by hit or stand.*/
+    /*  3D array that maps a state (represented by the player sum and dealer sum)
+        and an action (represented by hit or stand) to a float.
+        It would be smarter to convert this into a template for mapping to arbitrary types.*/
+    template <typename T>
     using StateActionMatrix = 
         std::array<
             std::array<
-                std::array<float, 
-                    environment::MAX_POSSIBLE_ACTIONS
-                >, environment::MAX_DEALER_SHOWING + 1
-            >, environment::MAX_PLAYER_TOTAL + 1
+                std::array<T, environment::MAX_POSSIBLE_ACTIONS>,
+                environment::MAX_DEALER_SHOWING + 1
+            >,
+            environment::MAX_PLAYER_TOTAL + 1
         >;
 
     class StateActionFunction{
@@ -43,10 +45,11 @@ namespace function {
                 Stores rows for the player sum from i = 0 to i = 21,
                 Stores columns for the dealer sum from i = 0 to i = 21,
                 Stores the action taken during the state where 0 = stand and 1 = hit. */
-            StateActionMatrix mapping;
+            StateActionMatrix<float> mapping;
 
     };
 
+    /* Implement a state function super class that allows a state to be mapped to an arbitrary type */
 }
 
 std::ostream& operator<<(std::ostream& o, function::StateActionFunction &f);
