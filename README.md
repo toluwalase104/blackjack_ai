@@ -1,7 +1,7 @@
 # Blackjack AI
 An AI that uses reinforcement learning through Monte Carlo methods to play blackjack. Written purely in C++ taking some inspiration from Openai's Gym environment.
 ## To build then run
-1. Firstly clone the repository onro your system.
+1. Firstly clone the repository onto your system.
 ```bash
 git clone https://github.com/toluwalase104/blackjack_ai
 ```
