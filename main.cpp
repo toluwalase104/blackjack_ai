@@ -7,7 +7,7 @@
 /* Just experimenting with macros for the enums */
 #define HIT environment::Action::HIT
 #define STAND environment::Action::STAND
-
+#define MAX_NUMBER_OF_SIMULATIONS 1000000
 using std::cout;
 using std::cin;
 using std::vector;
@@ -31,7 +31,7 @@ void updateQValues(
     function::StateActionFunction &stateActionVisited,     
     std::vector<StateAndAction> &visitedStatesAndActions,
     int G,
-    float learningFactor = 1.0
+    float learningFactor
 );
 
 /* Extracts the game outcome and determines the reward value */
@@ -87,6 +87,13 @@ void outputValueFunction(
     function::StateActionFunction &Q
 );
 
+/* Stores the agents initial sum */
+long long currentWinnings = 1000;
+/* Stores the lowest winings ever received*/
+long long highestWinnings = 0;
+/* Stores the total rreward value across the entire simulation */
+double cumulativeReward = 0.0;
+
 int main() {
     srand(time(0));
 
@@ -104,17 +111,16 @@ int main() {
     // Disable output
     cout.setstate(std::ios_base::failbit);
 
-    // Clips the number of simulations to be between one and 500000
-    numberOfSimulations = std::max(1, std::min(numberOfSimulations, 500000));
+    // Clips the number of simulations to be between one and one million
+    numberOfSimulations = std::max(1, std::min(numberOfSimulations, MAX_NUMBER_OF_SIMULATIONS));
 
     // Initialise the passive agent
     // agents::PassiveAgent agent;
 
     // Initialise the greedy agent with epsilon = 1 and decay rate of 0.999
-    agents::GreedyAgent agent(1, 0.999);
+    agents::GreedyAgent agent;
     
     vector<StateAndAction> visitedStatesAndActions;
-
 
     auto start = high_resolution_clock::now();
 
@@ -130,7 +136,11 @@ int main() {
     outputValueFunction(Q);
 
     cout << "\n\nNow outputting the value of Q\n";
-    cout << Q << "\n";
+    cout << Q << "\n\n";
+
+    cout << "Final winnings = " << currentWinnings << "\n";
+    cout << "Highest winnings = " << highestWinnings << "\n";
+    cout << "Expected reward = " << cumulativeReward / numberOfSimulations << "\n";
 
     // /* Prints the visit counts for each state action pair */
     // cout << "Now printing State-Action visit counts\n"; 
@@ -149,10 +159,11 @@ int main() {
     return 0;
 }
 
-void updateQValues( function::StateActionFunction &Q,
-                    function::StateActionFunction &N, 
-                    function::StateActionFunction &returnSums)
-    {
+void updateQValues( 
+    function::StateActionFunction &Q,
+    function::StateActionFunction &N, 
+    function::StateActionFunction &returnSums
+){
         
     float *visitCountPtr = nullptr,
           *QValuePtr = nullptr,
@@ -205,6 +216,9 @@ bool stateAndActionShouldBeRecorded(bool visited, environment::GameState state){
     );
 }
 
+/*  Takes a passive agent with a fixed policy and 
+    stores the Q-Values related with its decisions.
+    */
 void monteCarloPredict(
     int numberOfSimulations, 
     agents::PassiveAgent &agent, 
@@ -255,7 +269,8 @@ void monteCarloControl(
         environment::GameState state = testEnvironment.getCurrentState();
 
         agent.reset();
-        
+        cout << "Initial agent action = " << agent.getAction() << "\n";
+
         environment::Action agentDecision;
 
         /* Policy control starts here */
@@ -265,8 +280,15 @@ void monteCarloControl(
             if (Q(state, HIT) != nullptr && Q(state, STAND) != nullptr){
                 // Tell the agent what the optimal values are for hitting and standing given all prior states
                 agent.setActionValues(*Q(state, HIT), *Q(state, STAND));
+
                 // Consider the state and determine a decision to make
                 agentDecision = agent.considerState(state);
+
+                if (agentDecision == HIT) {
+                    cout << "The agent chooses to hit.\n";
+                } else {
+                    cout << "The agent chooses to stand.\n";
+                }
 
                 /* If first visit */
                 if (stateActionVisited(state, agentDecision) != nullptr &&
@@ -289,11 +311,20 @@ void monteCarloControl(
         // Generate the reward value from the result of the game
         int reward = generateRewardValue( state.getOutcome() );
 
+        /*Bet 5 as long as there player has 5 to bet */
+        if (currentWinnings >= 5){
+            currentWinnings += reward * 5;
+            
+            highestWinnings = std::max(highestWinnings, currentWinnings);
+        }
+
+        cumulativeReward += reward;
+
         updateQValues(Q, stateActionVisited, visitedStatesAndActions, reward, 0.001f);
 
         cout << "Now sleeping for 5 seconds \n";
         // std::this_thread::sleep_for(milliseconds(5000));
-        if (i % 5000 == 0) {
+        if (numberOfSimulations > 100 && (i % (numberOfSimulations / 100) == 0)) {
             auto timeLog = high_resolution_clock::now();
             auto duration = duration_cast<milliseconds>(timeLog - start);
 
@@ -312,8 +343,13 @@ void updateQValues(
     for (StateAndAction &p: visitedStatesAndActions){
         environment::GameState state = p.first;
         environment::Action action = p.second;
+        cout << "Now updating the Q-Values for:\n" << state << "\n with action " << action << "\n using reward " << G << "\n";
+
+        cout << "Q-Value before = " << *Q(state, action) << "\n";
         /* Calculate the updates to the Q-Value using the learning factor to prevent rapid and drastic changes */
         *Q(state, action) = *Q(state, action) + learningFactor * (G - *Q(state, action));
+
+        cout << "Q-Value after = " << *Q(state, action) << "\n";
 
         // Set the state and action to be unvisited for future calculations
         *stateActionVisited(state, action) = 0;
@@ -401,13 +437,14 @@ void outputValueFunction(
 ){
     /*  Outputs the value function by combining the q-values for each action in a given state
         into a sum for the entire state, since the q-values are averages */
+    cout << "Outputting in the form:\t``playertotal dealertotal maxValue;``\n\n";
     for (int i = 12; i <= environment::MAX_PLAYER_TOTAL; ++i){
         for (int j = 1; j <= environment::MAX_DEALER_SHOWING; ++j){
             // Get the max value for a given state
             float value = std::max(*Q.getImage(i, j, 0), *Q.getImage(i, j, 1));
             
-            cout << "(p = " << i << "; d = " << j << "; value = " << value << ") ";
+            cout << i << " " << j << " " << value;
+            cout << (j == environment::MAX_DEALER_SHOWING ? "\n":";");
         }
-        cout << "\n";
     }
 }

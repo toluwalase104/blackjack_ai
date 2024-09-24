@@ -25,13 +25,13 @@ namespace agents{
         virtual inline void reset(){
             this->action = environment::Action::HIT;
         }
-
+    protected:
+        /* The action the agent chooses at a given moment */
+        environment::Action action;  
     private:
         /* pure virtual function to be implemented as the agent initially has no policy */
         virtual environment::Action policy(environment::GameState state) = 0;
 
-        /* The action the agent chooses at a given moment */
-        environment::Action action;  
     };
     //
 
@@ -41,8 +41,6 @@ namespace agents{
 
         environment::Action considerState(environment::GameState state);
     private:
-        /* The action the agent chooses at a given moment */
-        environment::Action action;
 
         virtual environment::Action policy(environment::GameState state);
     };
@@ -54,6 +52,8 @@ namespace agents{
         greedily take the current best action for the state or attempt to take a different one*/
     class GreedyAgent: public Agent {
         public:
+            GreedyAgent();
+
             /* Takes epsilon, the rate of decay of epsilon and a pointer to the optimal function*/
             GreedyAgent(float epsilon, float decayRate);
 
@@ -61,11 +61,14 @@ namespace agents{
 
             void setActionValues(float hitValue, float standValue);
 
+            inline environment::Action getAction(){
+                return this->action;
+            }
+
         private:
             /* Epsilon holds the probability of choosing a random action, in a given state*/
             float epsilon, decayRate, hitValue, standValue;
 
-            environment::Action action;
             environment::Action policy(environment::GameState state);
     };
     

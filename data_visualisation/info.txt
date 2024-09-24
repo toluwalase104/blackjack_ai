@@ -1,0 +1,6 @@
+The 2 .txt files in this directory called q-action-values.txt and q-values.txt are the result of 
+a C++ program using the Monte Carlo First-Visit method to simulate 1,000,000 games of blackjack
+and averaging the rewards across all of those games to produce Q-Values, which represent the 
+utility of a state in general (in q-values.txt) or more specifically the utility of taking an action
+in a state (in q-action-values.txt).
+Where the worst actions will be closer to -1 and the best actions will be closer to +1.
