@@ -28,7 +28,6 @@ void updateQValues(
 /* Q-Value update function for control function */
 void updateQValues(
     function::StateActionFunction &Q,
-    function::StateActionFunction &stateActionVisited,     
     std::vector<StateAndAction> &visitedStatesAndActions,
     int G,
     float learningFactor
@@ -46,13 +45,12 @@ float generateRewardValue(environment::GameResult outcome);
     * The dealer is only showing one card, as the agent can make no further decisions after the dealer starts to
         reveal their hand,
  */
-bool stateAndActionShouldBeRecorded(bool visited, environment::GameState state);
+bool stateAndActionShouldBeRecorded(environment::GameState state);
 
 void monteCarloPredict(
     int numberOfSimulations, 
     agents::PassiveAgent &agent, 
     std::vector<StateAndAction> &visitedStatesAndActions, 
-    function::StateActionFunction &stateActionVisited, 
     function::StateActionFunction &N, 
     function::StateActionFunction &returnSums,
     std::chrono::_V2::system_clock::time_point &start
@@ -62,7 +60,6 @@ void monteCarloControl(
     int numberOfSimulations, 
     agents::GreedyAgent &agent, 
     function::StateActionFunction &Q, // Stores the utility for each of the state-action pairs 
-    function::StateActionFunction &stateActionVisited, // Stores a 1 or a 0 if a state has or hasn't been visited
     std::vector<StateAndAction> &visitedStatesAndActions, 
     std::chrono::_V2::system_clock::time_point &start
 );
@@ -72,15 +69,13 @@ void runEpisode(
     environment::GameState &state, 
     environment::EnvironmentHandler &testEnvironment,    
     std::vector<StateAndAction> &visitedStatesAndActions, 
-    function::StateActionFunction &stateActionVisited, 
     function::StateActionFunction &N
 );
 
 void updateReturnSums(
     environment::GameState &state, 
     std::vector<StateAndAction> &visitedStatesAndActions, 
-    function::StateActionFunction &returnSums, 
-    function::StateActionFunction &stateActionVisited
+    function::StateActionFunction &returnSums
 );
 
 void outputValueFunction(
@@ -94,15 +89,15 @@ long long highestWinnings = 0;
 /* Stores the total rreward value across the entire simulation */
 double cumulativeReward = 0.0;
 
+int COUNT = 0;
+
+std::string confirmation;
+
 int main() {
     srand(time(0));
 
-    function::StateActionFunction Q, N, returnSums, stateActionVisited;
+    function::StateActionFunction Q, N, returnSums;
     
-    /* gamma is the discount factor that reduces the value of a reward over time */
-    /* alpha is the learning factor that allows the agent to develop its own policy over time */
-    float gamma = 0.90f, alpha;
-
     cout << "Enter the number of simulations: ";
     int numberOfSimulations;
     cin >> numberOfSimulations;
@@ -125,7 +120,7 @@ int main() {
     auto start = high_resolution_clock::now();
 
     // monteCarloPredict(numberOfSimulations, agent, visitedStatesAndActions, stateActionVisited, N, returnSums, start);
-    monteCarloControl(numberOfSimulations, agent, Q, stateActionVisited, visitedStatesAndActions, start);
+    monteCarloControl(numberOfSimulations, agent, Q, visitedStatesAndActions, start);
 
 
     /* Re-enables output */ 
@@ -141,6 +136,7 @@ int main() {
     cout << "Final winnings = " << currentWinnings << "\n";
     cout << "Highest winnings = " << highestWinnings << "\n";
     cout << "Expected reward = " << cumulativeReward / numberOfSimulations << "\n";
+    cout << COUNT << " states were visited more than once.\n";
 
     // /* Prints the visit counts for each state action pair */
     // cout << "Now printing State-Action visit counts\n"; 
@@ -177,22 +173,25 @@ void updateQValues(
         );
     };
 
-    for (int i = 12; i <= environment::MAX_PLAYER_TOTAL; ++i){
-        for (int j = 1; j <= environment::MAX_DEALER_SHOWING; ++j){
-            for (int k = 0; k < environment::MAX_POSSIBLE_ACTIONS; ++k){
+    for (int l = 0; l < 2; ++l){
+        cout << (l ? "":"NO") << "Usable Ace\n";
+        for (int i = 12; i <= environment::MAX_PLAYER_TOTAL; ++i){
+            for (int j = 2; j <= environment::MAX_DEALER_SHOWING; ++j){
+                for (int k = 0; k < environment::MAX_POSSIBLE_ACTIONS; ++k){
+                        visitCountPtr = N.getImage(i, j, k, l), 
+                        returnSumPtr = returnSums.getImage(i, j, k, l),
+                        QValuePtr = Q.getImage(i, j, k, l);
 
-                visitCountPtr = N.getImage(i, j, k), 
-                returnSumPtr = returnSums.getImage(i, j, k),
-                QValuePtr = Q.getImage(i, j, k);
+                        // If the pointers are valid and the count is none zero
+                        // Then we set the QValue to be the average returnSum over all visits
+                        if (pointersAreValid() && (*visitCountPtr) > 0){
+                            *QValuePtr = (*returnSumPtr) / (*visitCountPtr);
+                            cout << (k ? "h":"s")<< " -> (S = {p: " << i << ", d: " << j << "}; Q = " << *QValuePtr << "; A = " << l << ") ";
+                        }
 
-                // If the pointers are valid and the count is none zero
-                // Then we set the QValue to be the average returnSum over all visits
-                if (pointersAreValid() && (*visitCountPtr) > 0){
-                    *QValuePtr = (*returnSumPtr) / (*visitCountPtr);
-                    cout << (k ? "h":"s")<< " -> (S = {p: " << i << ", d: " << j << "}; Q = " << *QValuePtr << ") ";
                 }
-
             }
+            cout << "\n";
         }
         cout << "\n";
     }
@@ -208,10 +207,14 @@ float generateRewardValue(environment::GameResult outcome){
     }
 }
 
-bool stateAndActionShouldBeRecorded(bool visited, environment::GameState state){
+bool stateAndActionShouldBeRecorded(environment::GameState state){
+    cout << "Now checking whether to record the current state and action\n";
+    cout << "The dealers face down cards are " << (state.dealerCardsShown() ? "":"not") << " shown.\n";
+    cout << "The player total is " << 
+        (state.getPlayerTotal() >= 12   ? "greater than or equal to 12":"less than 12") << ".\n";
+
     return (
-        !visited && 
-        !state.allCardsFaceup() && 
+        !state.dealerCardsShown() && 
         state.getPlayerTotal() >= 12    
     );
 }
@@ -223,11 +226,11 @@ void monteCarloPredict(
     int numberOfSimulations, 
     agents::PassiveAgent &agent, 
     std::vector<StateAndAction> &visitedStatesAndActions, 
-    function::StateActionFunction &stateActionVisited, 
     function::StateActionFunction &N, 
     function::StateActionFunction &returnSums,
     std::chrono::_V2::system_clock::time_point &start
 ) {
+    cout << "Now evaluating the results of a fixed policy with a passive agent.\n";
     for (int i = 1; i <= numberOfSimulations; ++i){
         cout << "SIMULATION #" << i << ":\n";
         environment::EnvironmentHandler testEnvironment;
@@ -237,15 +240,27 @@ void monteCarloPredict(
 
         /* Shift this to environment .hpp and .cpp then use the members of the class 
         to perform these actions internally */
-        runEpisode(agent, state, testEnvironment, visitedStatesAndActions, stateActionVisited, N);
+        runEpisode(agent, state, testEnvironment, visitedStatesAndActions, N);
 
-        updateReturnSums(state, visitedStatesAndActions, stateActionVisited, returnSums);
+        updateReturnSums(state, visitedStatesAndActions, returnSums);
 
         // Output the final game outcome
         cout << "Ultimate outcome: " << state.getOutcome() << "\n";
 
-        cout << "Now sleeping for 5 seconds \n";
-        // std::this_thread::sleep_for(milliseconds(5000));
+        // cout << "Now sleeping for 15 seconds \n";
+        // std::this_thread::sleep_for(milliseconds(15000));
+
+        std::string userInput("");
+        do {
+            cout << "Do you want to continue the simulation? (y/n)" << "\n";
+            cin >> userInput;
+            cout << "You enterred \"" << userInput << "\"\n";
+        } while (userInput != "y" && userInput != "n" && userInput != "N" && userInput != "Y");
+
+        if (userInput == "n" || userInput == "N"){
+            break;
+        }
+
         if (i % 5000 == 0) {
             auto timeLog = high_resolution_clock::now();
             auto duration = duration_cast<milliseconds>(timeLog - start);
@@ -259,7 +274,6 @@ void monteCarloControl(
     int numberOfSimulations, 
     agents::GreedyAgent &agent, 
     function::StateActionFunction &Q, // Stores the utility for each of the state-action pairs 
-    function::StateActionFunction &stateActionVisited, // Stores a 1 or a 0 if a state has or hasn't been visited
     std::vector<StateAndAction> &visitedStatesAndActions, 
     std::chrono::_V2::system_clock::time_point &start
 ) {
@@ -271,9 +285,10 @@ void monteCarloControl(
         agent.reset();
         cout << "Initial agent action = " << agent.getAction() << "\n";
 
-        environment::Action agentDecision;
+        environment::Action agentDecision = agent.getAction();
 
         /* Policy control starts here */
+        /* For actual */
         while (state.getOutcome() == environment::GameResult::UNFINISHED){
             // Check if the state is valid before allowing the agent to make a decision modifying itself in the process
             // E.g. neither references returned from the function object should be null-pointers
@@ -291,18 +306,17 @@ void monteCarloControl(
                 }
 
                 /* If first visit */
-                if (stateActionVisited(state, agentDecision) != nullptr &&
-                    stateAndActionShouldBeRecorded(
-                        *stateActionVisited(state, agentDecision), state
-                    )
+                if ( stateAndActionShouldBeRecorded(
+                        state
+                     )
                 ){
-                    ++(*stateActionVisited(state, agentDecision));
                     visitedStatesAndActions.emplace_back(state, agentDecision);
                 }
-            } else {
-                 // The only time it would be a nullptr is if the agent chose to stand previously
-                agentDecision = STAND;
-            }
+            } 
+            // else {
+            //      // The only time it would be a nullptr is if the agent chose to stand previously
+            //     agentDecision = STAND;
+            // }
 
             testEnvironment.simulateNextRound(agentDecision);
             state = testEnvironment.getCurrentState();
@@ -311,7 +325,7 @@ void monteCarloControl(
         // Generate the reward value from the result of the game
         int reward = generateRewardValue( state.getOutcome() );
 
-        /*Bet 5 as long as there player has 5 to bet */
+        /* Bet 5 as long as there player has 5 to bet */
         if (currentWinnings >= 5){
             currentWinnings += reward * 5;
             
@@ -320,7 +334,7 @@ void monteCarloControl(
 
         cumulativeReward += reward;
 
-        updateQValues(Q, stateActionVisited, visitedStatesAndActions, reward, 0.001f);
+        updateQValues(Q, visitedStatesAndActions, reward, 0.001f);
 
         cout << "Now sleeping for 5 seconds \n";
         // std::this_thread::sleep_for(milliseconds(5000));
@@ -335,7 +349,6 @@ void monteCarloControl(
 
 void updateQValues(
     function::StateActionFunction &Q,
-    function::StateActionFunction &stateActionVisited,     
     std::vector<StateAndAction> &visitedStatesAndActions,
     int G,
     float learningFactor
@@ -351,8 +364,6 @@ void updateQValues(
 
         cout << "Q-Value after = " << *Q(state, action) << "\n";
 
-        // Set the state and action to be unvisited for future calculations
-        *stateActionVisited(state, action) = 0;
     }
     // Clear the vector for future calculations
     visitedStatesAndActions.clear();
@@ -363,7 +374,6 @@ void runEpisode(
     environment::GameState &state, 
     environment::EnvironmentHandler &testEnvironment,    
     std::vector<StateAndAction> &visitedStatesAndActions, 
-    function::StateActionFunction &stateActionVisited, 
     function::StateActionFunction &N
 ) {
     while (state.getOutcome() == environment::GameResult::UNFINISHED) {
@@ -379,24 +389,21 @@ void runEpisode(
 
         // Check whether it's the first visit and necessary to record
         // (IFF one dealer card is face up and agent action is non obvious)
-        if (stateActionVisited(state, agentDecision) != nullptr &&
-            stateAndActionShouldBeRecorded(
-                *stateActionVisited(state, agentDecision), state
+        if (stateAndActionShouldBeRecorded(
+                state
             )
         ){
 
-            // cout << "State not visited before" << "\n";
+            cout << "State not visited before" << "\n";
             // cout << "(N) Count before incrementing = " << *N(state, agentDecision) << "\n";
 
             ++(*N(state, agentDecision));
 
             // cout << "(N) Count after incrementing = " << *N(state, agentDecision) << "\n";
 
-            ++(*stateActionVisited(state, agentDecision));
-
             visitedStatesAndActions.emplace_back(state, agentDecision);
         } else {
-            cout << "Visited before :\n";
+            cout << "Redundant state or state visited before in this episode :\n";
             cout << state << "\n";
         }
 
@@ -408,7 +415,6 @@ void runEpisode(
 void updateReturnSums(
     environment::GameState &state, 
     std::vector<StateAndAction> &visitedStatesAndActions, 
-    function::StateActionFunction &stateActionVisited, 
     function::StateActionFunction &returnSums 
 ) {
     // G holds the reward of the current episode, 1 for win, 0 for draw, 1 for loss based on the game outcome
@@ -425,8 +431,6 @@ void updateReturnSums(
 
         cout << "Return Sum after update = " << *returnSums(current.first, current.second) << "\n";
 
-        // Resets whether the state action has been visited for the generation of the next episode
-        *(stateActionVisited(current.first, current.second)) = 0;
 
         visitedStatesAndActions.pop_back();
     }
@@ -438,13 +442,17 @@ void outputValueFunction(
     /*  Outputs the value function by combining the q-values for each action in a given state
         into a sum for the entire state, since the q-values are averages */
     cout << "Outputting in the form:\t``playertotal dealertotal maxValue;``\n\n";
-    for (int i = 12; i <= environment::MAX_PLAYER_TOTAL; ++i){
-        for (int j = 1; j <= environment::MAX_DEALER_SHOWING; ++j){
-            // Get the max value for a given state
-            float value = std::max(*Q.getImage(i, j, 0), *Q.getImage(i, j, 1));
-            
-            cout << i << " " << j << " " << value;
-            cout << (j == environment::MAX_DEALER_SHOWING ? "\n":";");
+    for (int k = 0; k < 2; ++k){
+        cout << (k ? "With":"Without") << " usable ace.\n";
+        for (int i = 12; i <= environment::MAX_PLAYER_TOTAL; ++i){
+            for (int j = 2; j <= environment::MAX_DEALER_SHOWING; ++j){
+                // Get the max value for a given state
+                float value = std::max(*Q.getImage(i, j, 0, k), *Q.getImage(i, j, 1, k));
+                
+                cout << i << " " << j << " " << value;
+                cout << (j == environment::MAX_DEALER_SHOWING ? "\n":";");
+            }
         }
+        cout << "\n";
     }
 }

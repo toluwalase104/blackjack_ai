@@ -10,7 +10,7 @@ using std::vector;
 
 agents::Agent::Agent(){
     cout << "Base constructor invoked Resetting action to hit in abstract base class\n\n";
-    this->reset();
+    this->action = environment::Action::HIT;
     cout << "Current action is " << this->action << "\n";
 }
 
@@ -112,17 +112,26 @@ environment::Action agents::GreedyAgent::policy(environment::GameState state){
     /* The probability of exploring is chosen at random */
     float probabilityOfExploring = environment::getRandomFloat();
 
-    // If the agent chooses to explore over choosing what is optimal, then choose an action at random
-    if (probabilityOfExploring > probabilityOfChoosingBest){
-        this->action = rand() % 2 
-            ? environment::Action::HIT 
-            : environment::Action::STAND;
-    // Otherwise set the agent's chosen action to whatever is most profitable
-    } else if (hitValue > standValue){
+    // By default set the agent's chosen action to whatever is most profitable
+    if (hitValue > standValue){
         this->action = environment::Action::HIT;
     } else {
         this->action = environment::Action::STAND;
     }
+    
+    // If the policy is to choose the best then we return the best action
+    if (probabilityOfChoosingBest > probabilityOfExploring){
+        return this->action;
+    }
 
+    // If we reach here then the policy is to explore so we choose the opposite of the optimally selected action previously
+    if (this->action == environment::Action::HIT){
+        // If the best action was hit then we stand
+        this->action = environment::Action::STAND;
+    } else {
+        // If the best thing to do was stand then we hit
+        this->action = environment::Action::HIT;
+    }
+    
     return this->action;
 }

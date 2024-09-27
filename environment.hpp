@@ -15,7 +15,7 @@
 namespace environment {
     const int DECK_SIZE = 52;
 
-    const int MAX_PLAYER_TOTAL = 21, MAX_DEALER_SHOWING = 10, MAX_POSSIBLE_ACTIONS = 2;
+    const int MAX_PLAYER_TOTAL = 21, MAX_DEALER_SHOWING = 11, MAX_POSSIBLE_ACTIONS = 2, MAX_ACE_VALUE = 1;
 
     const std::string POSSIBLE_SUITES = "HDSC";
 
@@ -43,6 +43,8 @@ namespace environment {
     /* Stores the essential data used by the model to determine the game's state */
     class GameState {
     public:
+        int numberOfDeals;
+
         GameState();
 
         void addCard(game_assets::Card card, bool forPlayer);
@@ -66,10 +68,18 @@ namespace environment {
 
         int getNumberOfSeenCards() const;
 
-        void showFacedown();
+        /* Show the cards that the dealer had facing down*/
+        void showDealerCards();
 
-        bool allCardsFaceup();
-        
+        /* Check if the dealers cards are shown */
+        bool dealerCardsShown();
+
+        bool doesPlayerHaveUsableAce() const;
+
+        bool doesDealerHaveUsableAce() const;
+
+        void updateTotal(int cardValue, int &total, bool &usableAce);
+
         /* Allows the pretty printing of currently stored cards */
         std::string stringifyCards();
 
@@ -78,16 +88,13 @@ namespace environment {
     private:
         std::vector<int> playerCards, dealerCards;
         int playerTotal, dealerTotal, faceupTotal, numberOfSeenCards;
-        bool dealerShowsAll;
+        bool dealerShowsAll, playerHasUsableAce, dealerHasUsableAce;
         GameResult outcome;
     };
 
     class EnvironmentHandler {
     public:
         EnvironmentHandler();
-
-        /* Selects the index of an unseen card */
-        int selectRandomIndex();
 
         /* Selects a card that has not been seen yet */
         int selectOutOfRemainingCards();
@@ -106,17 +113,11 @@ namespace environment {
     private:
         GameState currentState;
 
+        int numberOfRemainingCards;
+
         std::vector<game_assets::Card> deck;
+        std::unordered_set<int> seenIDs;
 
-        std::vector<game_assets::Card> currentHand;
-
-        int numberOfDeals;
-        std::unordered_set<int> seenCards;
-
-        // Player initially always hits when they choose stand
-        // Their choice is locked until the end of the episode
-        bool playerChoseToHit;
-        int dealerTotal, playerTotal, faceupTotal;
     };
 
 }

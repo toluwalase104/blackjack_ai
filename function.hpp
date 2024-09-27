@@ -1,10 +1,9 @@
 #pragma once
 
-#ifndef STATE_ACTION_FUNCTION_H
+#ifndef FUNCTION_H
 
-#define STATE_ACTION_FUNCTION_H
+#define FUNCTION_H
 
-#include <unordered_map>
 #include <utility>
 #include "environment.hpp"
 
@@ -37,15 +36,17 @@ namespace function {
             float* operator()(environment::GameState state, environment::Action action);
 
             /* Returns the image of a given function input */
-            float* getImage(int i, int j, int k);
+            float* getImage(int i, int j, int k, int l);
 
             void initialiseImages();
         private:
             /*  A 3D array that stores actions taken in each state for the function
                 Stores rows for the player sum from i = 0 to i = 21,
                 Stores columns for the dealer sum from i = 0 to i = 21,
-                Stores the action taken during the state where 0 = stand and 1 = hit. */
-            StateActionMatrix<float> mapping;
+                Stores the action taken during the state where 0 = stand and 1 = hit.
+                Stores whether the player has a usable ace in the outer most array
+             */
+            StateActionMatrix<std::array<float, 2>> mapping;
 
     };
 
@@ -54,4 +55,4 @@ namespace function {
 
 std::ostream& operator<<(std::ostream& o, function::StateActionFunction &f);
 
-#endif /* STATE_ACTION_FUNCTION_H */
+#endif /* FUNCTION_H */
