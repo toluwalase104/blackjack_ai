@@ -7,11 +7,43 @@ using std::vector;
 
 environment::GameState::GameState() :
     playerTotal(0), dealerTotal(0), faceupTotal(0),
+    numberOfDeals(0), numberOfSeenCards(0),
     dealerShowsAll(false),
-    numberOfSeenCards(0),
+    playerHasUsableAce(false),
+    dealerHasUsableAce(false),
     outcome(GameResult::UNFINISHED) {
         playerCards.reserve(60), dealerCards.reserve(60);
         playerCards.resize(52, 0), dealerCards.resize(52, 0);
+}
+
+bool environment::GameState::doesPlayerHaveUsableAce() const {
+    return playerHasUsableAce;
+}
+
+bool environment::GameState::doesDealerHaveUsableAce() const {
+    return dealerHasUsableAce;
+}
+
+void environment::GameState::updateTotal(
+    int cardValue,
+    int &total,
+    bool &usableAce
+){
+    // If the player has a usable ace and they are about to go bust then deactivate the ace
+    if (usableAce && total + cardValue > 21){
+        usableAce = false;
+        total += cardValue - 10;
+        return;
+    }
+    // If the player is about to receive an ace
+    if (cardValue == 1 && total + 11 <= 21){
+        usableAce = true;
+        total += 11;
+        return;
+    }
+
+    // Otherwise increment the total as normal
+    total += cardValue;
 }
 
 void environment::GameState::addCard(game_assets::Card card, bool forPlayer) {
@@ -27,11 +59,14 @@ void environment::GameState::addCard(game_assets::Card card, bool forPlayer) {
     // Give card to the appropriate owner
     if (forPlayer) {
         playerCards[cardID] = 1;
-        playerTotal += cardValue;
+
+        updateTotal(cardValue, playerTotal, playerHasUsableAce);
     } else {
         dealerCards[cardID] = 1;
-        dealerTotal += cardValue;
-        // The shown total only shows the first card facing up or if the dealer is showing all cards
+
+        updateTotal(cardValue, dealerTotal, dealerHasUsableAce);
+
+        // Modify the face up total if need be 
         faceupTotal = 
             (faceupTotal == 0 || dealerShowsAll) 
             ? dealerTotal
@@ -150,12 +185,12 @@ std::string environment::GameState::stringifyCards() {
 }
 
 /* Makes the dealer show all the cards */
-void environment::GameState::showFacedown(){
+void environment::GameState::showDealerCards(){
     this->dealerShowsAll = true;
 }
 
 /* Shows if dealer is showing all the cards */ 
-bool environment::GameState::allCardsFaceup(){
+bool environment::GameState::dealerCardsShown(){
     return this->dealerShowsAll;
 }
 
@@ -168,16 +203,11 @@ bool environment::GameState::operator==(GameState comparedState) {
 }
 
 environment::EnvironmentHandler::EnvironmentHandler() {
-
-    playerTotal = 0;
-    dealerTotal = 0;
-    faceupTotal = 0;
-    numberOfDeals = 0;
-    playerChoseToHit = true;
-
     // Defines the amount of space the deck will needed
     deck.reserve(60);
     deck.resize(52);
+    
+    numberOfRemainingCards = DECK_SIZE;
 
     for (int i = 0; i < DECK_SIZE; ++i) {
         // The minimum between 10 and the actual value is used because the maximum card value is 10 (excluding aces)
@@ -186,32 +216,43 @@ environment::EnvironmentHandler::EnvironmentHandler() {
         deck[i] = game_assets::Card(i, currentCardVal, currentSuite);
     }
 
+    // Start the game with the initial player action being hit
     simulateNextRound(environment::Action::HIT);
-}
-
-/* Selects the index of an unseen card */
-int environment::EnvironmentHandler::selectRandomIndex() {
-    // Calculate the number of unseen cards
-    int remainingCards = DECK_SIZE - (int)seenCards.size();
-
-    // Choose one of the cards from the unseen cards at random
-    return (rand() % remainingCards) + 1;
 }
 
 /* Selects a card that has not been seen yet */
 int environment::EnvironmentHandler::selectOutOfRemainingCards() {
+    cout << "\nA card is being randomly selected out of the " << numberOfRemainingCards << " remaining.\n";
     // Choose an index out of the remaining cards to select
-    int index = selectRandomIndex();
+    int index = rand() % numberOfRemainingCards;
 
+    // Utility function to output numbers in a correct human-readable format
+    auto getNumberSuffix = [](int i){
+        switch(i % 10){
+            case 1:
+                return "st";
+            case 2:
+                return "nd";
+            case 3:
+                return "rd";
+            default:
+                return "th";
+        }
+    };
+    cout << "The " << index << getNumberSuffix(index) << " unseen card out of those remaining will be selected.\n";
     // Search for the chosen index
+    cout << "Enterring selection loop\n";
+
     for (int i = 0; i < DECK_SIZE; ++i) {
         // If the current card has been seen skip it
-        if (seenCards.find(i) != seenCards.end()) {
+        if (seenIDs.find(i) != seenIDs.end()) {
             continue;
         }
 
-        if (index <= 1) {
-            seenCards.emplace(i);
+        if (index <= 0) {
+            --numberOfRemainingCards;
+            cout << "The " << i << getNumberSuffix(i) << "card in the deck was chosen";
+            seenIDs.emplace(i);
             return i;
         }
         // Decrease the index so it can be found in the next iteration
@@ -231,9 +272,9 @@ vector<game_assets::Card> environment::EnvironmentHandler::getNextHand() {
     int numberOfCards;
 
     // Select 4 cards for the initial deal, 2 player cards one dealer card
-    if (this->numberOfDeals == 0) {
+    if (currentState.numberOfDeals == 0) {
         numberOfCards = 4;
-    } else if (this->dealerTotal < 17 || this->playerChoseToHit) { 
+    } else if (!currentState.dealerCardsShown() || currentState.getDealerTotal() < 17) { 
         // Generate one card for each deal after 
         numberOfCards = 1;
     } else {
@@ -246,48 +287,25 @@ vector<game_assets::Card> environment::EnvironmentHandler::getNextHand() {
     for (int i = 0; i < numberOfCards; ++i) {
         currentIndex = selectOutOfRemainingCards();
 
-        indicesChosen.emplace_back(currentIndex);
+        cardsDealt.emplace_back(deck[currentIndex]);
     }
-
-    std::transform(indicesChosen.begin(), indicesChosen.end(), std::back_inserter(cardsDealt),
-        [&](int i) {
-            return deck[i];
-        }
-    );
 
     return cardsDealt;
 }
 
 void environment::EnvironmentHandler::updateTotals(vector<game_assets::Card> cardsDealt, int numberOfCards) {
     // If on the first hand then all sums are updated
-    if (this->numberOfDeals == 0) {
+    if (currentState.numberOfDeals == 0) {
         for (int i = 0; i < numberOfCards; ++i) {
-            // The dealer takes the cards on odd turns
-            if (i % 2) {
-                this->dealerTotal += (int)cardsDealt[i].getValue();
-                // Face up total is only set on the first deal 
-                this->faceupTotal =  
-                    (numberOfDeals == 0 || this->currentState.allCardsFaceup())
-                    ? this->dealerTotal
-                    : this->faceupTotal;
-            } else {
-                this->playerTotal += (int)cardsDealt[i].getValue();
-            }
+            // The dealer takes the cards on odd turns and the player on even turns
             currentState.addCard(cardsDealt[i], i % 2 == 0);
         }
-    } else if (this->playerChoseToHit) { 
+    // If the dealer still has a card facing down then the player is still hitting
+    } else if (!currentState.dealerCardsShown()) { 
         // While the player chooses to hit, only the player will be served
-        this->playerTotal += (int)cardsDealt[0].getValue();
         currentState.addCard(cardsDealt[0], true);
-    } else if (this->dealerTotal < 17) {
+    } else if (currentState.getDealerTotal() < 17) {
         // When only the dealer is able to hit
-        this->dealerTotal += (int)cardsDealt[0].getValue();
-        
-        this->faceupTotal =  
-            (numberOfDeals == 0 || this->currentState.allCardsFaceup())
-            ? this->dealerTotal
-            : this->faceupTotal;
-
         currentState.addCard(cardsDealt[0], false);
     } else {
         // Neither the dealer or player chose or were able to hit so nothing to update sums with
@@ -297,32 +315,32 @@ void environment::EnvironmentHandler::updateTotals(vector<game_assets::Card> car
 
 environment::GameResult environment::EnvironmentHandler::checkGameResult() {
     // If the dealer and player can still play, then the game has not reached an end state
-    if (this->playerChoseToHit && this->playerTotal <= 21 && this->dealerTotal < 17) {
+    if (!currentState.dealerCardsShown() && currentState.getPlayerTotal() <= 21 && currentState.getDealerTotal() < 17) {
         cout << "\nPlayer says hit, Player hasn't bust yet and Dealer below 17; so the game continues.\n\n";
         return environment::GameResult::UNFINISHED;
     }
 
     // If the dealer and player goes bust
-    if (this->dealerTotal > 21 && this->playerTotal > 21) {
+    if (currentState.getDealerTotal() > 21 && currentState.getPlayerTotal() > 21) {
         return environment::GameResult::MUTUAL_BUST;
-    } else if (this->dealerTotal > 21) {
+    } else if (currentState.getDealerTotal() > 21) {
         // If the dealer busts then the player wins
         return environment::GameResult::PLAYER_WIN;
-    } else if (this->playerTotal > 21) {
+    } else if (currentState.getPlayerTotal() > 21) {
         // If the player busts then the dealer wins
         return environment::GameResult::DEALER_WIN;
 
         // If the player chose to hit or the dealer must still hit then carry on
-    } else if (this->playerChoseToHit || this->dealerTotal < 17) {
-        cout << "\n" << "Player chose to hit (" << (this->playerChoseToHit ? "True" : "False") <<
-            ") OR Dealer below 17(" << (this->dealerTotal < 17 ? "True" : "False") << "), so game continues \n\n";
+    } else if (!currentState.dealerCardsShown() || currentState.getDealerTotal() < 17) {
+        cout << "\n" << "Player chose to hit (" << (!currentState.dealerCardsShown() ? "True" : "False") <<
+            ") OR Dealer below 17(" << (currentState.getDealerTotal() < 17 ? "True" : "False") << "), so game continues \n\n";
             
         return environment::GameResult::UNFINISHED;
 
         // Below here the player must have chosen to stand and the dealer can push no further
-    } else if (this->playerTotal > this->dealerTotal) {
+    } else if (currentState.getPlayerTotal() > currentState.getDealerTotal()) {
         return environment::GameResult::PLAYER_WIN;
-    } else if (this->playerTotal < this->dealerTotal) {
+    } else if (currentState.getPlayerTotal() < currentState.getDealerTotal()) {
         return environment::GameResult::DEALER_WIN;
     } else {
         // Neither dealer nor player busted and neither can make a further move
@@ -333,12 +351,9 @@ environment::GameResult environment::EnvironmentHandler::checkGameResult() {
 /*  The control function of the environment object.
     It plays the next hand of the game, updates the player totals and  determines whether the game is over.*/
 environment::GameResult environment::EnvironmentHandler::simulateNextRound(environment::Action action) {
-    // Take whether the agent chooses to hit or stand as input
-    this->playerChoseToHit &= (action == environment::Action::HIT);
-
-    // When the player chooses to stand, the dealer reveals the face down card
-    if (!this->playerChoseToHit){
-        currentState.showFacedown();
+    // If the player ever chooses to stand, the dealer reveals the face down card
+    if (action == environment::Action::STAND){
+        currentState.showDealerCards();
     }
 
     // Get the next hand
@@ -354,8 +369,9 @@ environment::GameResult environment::EnvironmentHandler::simulateNextRound(envir
 
     cout << currentState;
     cout << "Current outcome: " << currentState.getOutcome() << "\n";
-
-    ++numberOfDeals;
+    cout << "The PLAYER has a usable ace = " << (currentState.doesPlayerHaveUsableAce() ? "TRUE":"FALSE") << "\n";
+    cout << "The DEALER has a usable ace = " << (currentState.doesDealerHaveUsableAce() ? "TRUE":"FALSE") << "\n\n";
+    ++currentState.numberOfDeals;
     return gameResult;
 }
 
