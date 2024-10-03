@@ -5,6 +5,7 @@
 #define FUNCTION_H
 
 #include <utility>
+#include <array>
 #include "environment.hpp"
 
 /* PLAYERCARDS AND DEALER CARDS IN GAMESTATE CAN BE IMPLEMENTED AS A VECTOR OF INTEGERS 
@@ -44,7 +45,7 @@ namespace function {
                 Stores rows for the player sum from i = 0 to i = 21,
                 Stores columns for the dealer sum from i = 0 to i = 21,
                 Stores the action taken during the state where 0 = stand and 1 = hit.
-                Stores whether the player has a usable ace in the outer most array
+                Stores whether the player has a usable ace in the inner-most array
              */
             StateActionMatrix<std::array<float, 2>> mapping;
 

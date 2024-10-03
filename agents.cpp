@@ -107,7 +107,7 @@ void agents::GreedyAgent::setActionValues(float hitValue, float standValue){
 */
 environment::Action agents::GreedyAgent::policy(environment::GameState state){
     // The probability of choosing the best action tends towards 1 as the number of states seen increases
-    float probabilityOfChoosingBest = (1.0 - epsilon) + epsilon / environment::MAX_POSSIBLE_ACTIONS;
+    float probabilityOfChoosingBest = (1.0f - epsilon) + epsilon / environment::MAX_POSSIBLE_ACTIONS;
 
     /* The probability of exploring is chosen at random */
     float probabilityOfExploring = environment::getRandomFloat();

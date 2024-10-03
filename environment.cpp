@@ -1,4 +1,5 @@
 #include "environment.hpp"
+#include <string>
 
 using std::cout;
 using std::vector;
@@ -360,7 +361,7 @@ environment::GameResult environment::EnvironmentHandler::simulateNextRound(envir
     vector<game_assets::Card> cardsDealt = getNextHand();
 
     // Update the totals using the cards dealt
-    updateTotals(cardsDealt, cardsDealt.size());
+    updateTotals(cardsDealt, (int)cardsDealt.size());
 
     // Determine the current game state and return it
     environment::GameResult gameResult = checkGameResult();

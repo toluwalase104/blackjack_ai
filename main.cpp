@@ -29,7 +29,7 @@ void updateQValues(
 void updateQValues(
     function::StateActionFunction &Q,
     std::vector<StateAndAction> &visitedStatesAndActions,
-    int G,
+    float G,
     float learningFactor
 );
 
@@ -52,16 +52,14 @@ void monteCarloPredict(
     agents::PassiveAgent &agent, 
     std::vector<StateAndAction> &visitedStatesAndActions, 
     function::StateActionFunction &N, 
-    function::StateActionFunction &returnSums,
-    std::chrono::_V2::system_clock::time_point &start
+    function::StateActionFunction &returnSums
 );
 
 void monteCarloControl(
     int numberOfSimulations, 
     agents::GreedyAgent &agent, 
     function::StateActionFunction &Q, // Stores the utility for each of the state-action pairs 
-    std::vector<StateAndAction> &visitedStatesAndActions, 
-    std::chrono::_V2::system_clock::time_point &start
+    std::vector<StateAndAction> &visitedStatesAndActions
 );
 
 void runEpisode(
@@ -94,6 +92,8 @@ int COUNT = 0;
 std::string confirmation;
 
 int main() {
+    std::ios_base::sync_with_stdio(false);
+
     srand(time(0));
 
     function::StateActionFunction Q, N, returnSums;
@@ -117,10 +117,8 @@ int main() {
     
     vector<StateAndAction> visitedStatesAndActions;
 
-    auto start = high_resolution_clock::now();
-
-    // monteCarloPredict(numberOfSimulations, agent, visitedStatesAndActions, stateActionVisited, N, returnSums, start);
-    monteCarloControl(numberOfSimulations, agent, Q, visitedStatesAndActions, start);
+    // monteCarloPredict(numberOfSimulations, agent, visitedStatesAndActions, stateActionVisited, N, returnSums);
+    monteCarloControl(numberOfSimulations, agent, Q, visitedStatesAndActions);
 
 
     /* Re-enables output */ 
@@ -227,9 +225,10 @@ void monteCarloPredict(
     agents::PassiveAgent &agent, 
     std::vector<StateAndAction> &visitedStatesAndActions, 
     function::StateActionFunction &N, 
-    function::StateActionFunction &returnSums,
-    std::chrono::_V2::system_clock::time_point &start
-) {
+    function::StateActionFunction &returnSums
+){
+    auto start = high_resolution_clock::now();
+    
     cout << "Now evaluating the results of a fixed policy with a passive agent.\n";
     for (int i = 1; i <= numberOfSimulations; ++i){
         cout << "SIMULATION #" << i << ":\n";
@@ -274,9 +273,10 @@ void monteCarloControl(
     int numberOfSimulations, 
     agents::GreedyAgent &agent, 
     function::StateActionFunction &Q, // Stores the utility for each of the state-action pairs 
-    std::vector<StateAndAction> &visitedStatesAndActions, 
-    std::chrono::_V2::system_clock::time_point &start
+    std::vector<StateAndAction> &visitedStatesAndActions
 ) {
+    auto start = high_resolution_clock::now();
+
     for (int i = 1; i <= numberOfSimulations; ++i){
         cout << "SIMULATION #" << i << ":\n";
         environment::EnvironmentHandler testEnvironment;
@@ -323,7 +323,7 @@ void monteCarloControl(
         }
 
         // Generate the reward value from the result of the game
-        int reward = generateRewardValue( state.getOutcome() );
+        float reward = generateRewardValue( state.getOutcome() );
 
         /* Bet 5 as long as there player has 5 to bet */
         if (currentWinnings >= 5){
@@ -350,7 +350,7 @@ void monteCarloControl(
 void updateQValues(
     function::StateActionFunction &Q,
     std::vector<StateAndAction> &visitedStatesAndActions,
-    int G,
+    float G,
     float learningFactor
 ){
     for (StateAndAction &p: visitedStatesAndActions){

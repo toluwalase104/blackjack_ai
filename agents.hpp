@@ -46,7 +46,7 @@ namespace agents{
     };
 
     /* The minimum probability of choosing a random action as opposed to the currently optimal. */
-    const float EPSILON_MIN = 0.01;
+    const float EPSILON_MIN = 0.01f;
 
     /* This agent makes its decisions using epsilon-greedy to determine whether or not it should
         greedily take the current best action for the state or attempt to take a different one*/
