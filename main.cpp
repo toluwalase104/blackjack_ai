@@ -94,7 +94,7 @@ std::string confirmation;
 int main() {
     std::ios_base::sync_with_stdio(false);
 
-    srand(time(0));
+    srand((unsigned int)time(0));
 
     function::StateActionFunction Q, N, returnSums;
     
@@ -327,7 +327,7 @@ void monteCarloControl(
 
         /* Bet 5 as long as there player has 5 to bet */
         if (currentWinnings >= 5){
-            currentWinnings += reward * 5;
+            currentWinnings += (int)reward * 5;
             
             highestWinnings = std::max(highestWinnings, currentWinnings);
         }

@@ -57,6 +57,10 @@ namespace environment {
 
         /* Returns all cards seen so far, combined into one set */
         std::vector<int> getSeenCards() const;
+        
+        std::vector<int> getPlayerCards() const;
+
+        std::vector<int> getDealerCards() const;
 
         void setOutcome(GameResult outcome);
 
@@ -94,6 +98,8 @@ namespace environment {
 
     class EnvironmentHandler {
     public:
+        std::vector<game_assets::Card> deck;
+
         EnvironmentHandler();
 
         /* Selects a card that has not been seen yet */
@@ -115,7 +121,6 @@ namespace environment {
 
         int numberOfRemainingCards;
 
-        std::vector<game_assets::Card> deck;
         std::unordered_set<int> seenIDs;
 
     };

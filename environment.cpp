@@ -91,24 +91,26 @@ int environment::GameState::getFaceupTotal() const{
 
 /* Returns all cards seen so far, combine into one set */
 std::vector<int> environment::GameState::getSeenCards() const{
-    vector<int> result;
+    std::vector<int> result;
 
     // Reserve enough space for both sets of cards
     result.reserve(numberOfSeenCards); 
 
-    std::copy_if(playerCards.begin(), playerCards.end(), std::back_inserter(result),
-        [](int x){
-            return x;
+    for (int i = 0; i < DECK_SIZE; ++i){
+        if (playerCards[i] || dealerCards[i]){
+            result.push_back(i);
         }
-    );
-
-    std::copy_if(dealerCards.begin(), dealerCards.end(), std::back_inserter(result),
-        [](int x){
-            return x;
-        }
-    );
+    }
 
     return result;
+}
+
+std::vector<int> environment::GameState::getPlayerCards() const{
+    return playerCards;
+}
+
+std::vector<int> environment::GameState::getDealerCards() const{
+    return dealerCards;
 }
 
 void environment::GameState::setOutcome(GameResult outcome) {
@@ -260,7 +262,7 @@ int environment::EnvironmentHandler::selectOutOfRemainingCards() {
         --index;
     }
     // Throw an exception instead of printing
-    return 0;
+    return 52;
 }
 
 /* Generates the required number of cards for the current game state */
