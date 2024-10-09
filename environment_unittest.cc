@@ -1,37 +1,33 @@
 #include "environment.hpp"
-#include <numeric>
 #include <gtest/gtest.h>
 
-class EnvironmentHandlerTest : public testing::Test {
+class EnvironmentHandlerTests : public testing::Test {
     protected:
-        EnvironmentHandlerTest() {}
+        EnvironmentHandlerTests() {}
         environment::EnvironmentHandler e0;
-        
+        game_assets::Deck deck;
+
         // Utility function that calculates the value of the recorded cards
         int calculateTotalCardValue(std::vector<int> &seenCards) const{
             int total = 0;
-            for (int i = 0; i < environment::DECK_SIZE; ++i){
+            for (int i = 0; i < game_assets::DECK_SIZE; ++i){
                 if (seenCards[i]){
-                    total += (int)e0.deck[i].getValue();
+                    total += (int)deck[i].getValue();
                 }
             }
             return total;
         }
 };
 
-class GameStateTest : public testing::Test {
+class GameStateTests : public testing::Test {
     protected:
-        GameStateTest(){
-            // Get a deck that can be used to query the game state
-            deck = environment::EnvironmentHandler::EnvironmentHandler().deck;
-        }
-
+        GameStateTests(){}
 
     environment::GameState gs0;
-    std::vector<game_assets::Card> deck;
+    game_assets::Deck deck;
 };
 
-TEST_F(EnvironmentHandlerTest, InitialTotalsAreConsistent){
+TEST_F(EnvironmentHandlerTests, InitialTotalsAreConsistent){
 
     environment::GameState s0 = e0.getCurrentState();
 
@@ -42,7 +38,7 @@ TEST_F(EnvironmentHandlerTest, InitialTotalsAreConsistent){
     EXPECT_EQ(calculateTotalCardValue(s0.getDealerCards()), s0.getDealerTotal());
 }
 
-TEST_F(EnvironmentHandlerTest, InitialCardStatusIsCorrect){
+TEST_F(EnvironmentHandlerTests, InitialCardStatusIsCorrect){
      
     environment::GameState s0 = e0.getCurrentState();
 
@@ -54,9 +50,9 @@ TEST_F(EnvironmentHandlerTest, InitialCardStatusIsCorrect){
 }
 
 // An ace by itself would be the lower limit, whereas an Ace with a 10 or a face card would be the upper limit of inclusion
-TEST_F(GameStateTest, UsableAceIsCorrectlyIncludedLowerLimit){
+TEST_F(GameStateTests, UsableAceIsCorrectlyIncludedLowerLimit){
 
-    // Add the Ace of Hearts to the player's deck
+    // Add the Ace of Hearts to the player's hand
     gs0.addCard(deck[0], true);
 
     // The useable ace should be flagged and the ace's value should be 11
@@ -67,17 +63,17 @@ TEST_F(GameStateTest, UsableAceIsCorrectlyIncludedLowerLimit){
 }
 
 // When all aces are in a players deck it should be correctly handled in the game state
-TEST_F(GameStateTest, UsableAceIsCorrectlyIncludedWithAllAces){
-    // Add the Ace of Hearts to the player's deck
+TEST_F(GameStateTests, UsableAceIsCorrectlyIncludedWithAllAces){
+    // Add the Ace of Hearts to the player's hand
     gs0.addCard(deck[0], true);
 
-    // Add the Ace of Diamonds to the player's deck
+    // Add the Ace of Diamonds to the player's hand
     gs0.addCard(deck[13], true);
 
-    // Add the Ace of Clubs to the player's deck
+    // Add the Ace of Clubs to the player's hand
     gs0.addCard(deck[26], true);
 
-    // Add the Ace of Hearts to the player's deck
+    // Add the Ace of Hearts to the player's hand
     gs0.addCard(deck[39], true);
 
     // The useable ace should be flagged and the ace's value should be 14
@@ -88,11 +84,11 @@ TEST_F(GameStateTest, UsableAceIsCorrectlyIncludedWithAllAces){
 }
 
 // An ace by itself would be the lower limit, whereas an Ace with a 10 or a face card would be the upper limit of inclusion
-TEST_F(GameStateTest, UsableAceIsCorrectlyIncludedUpperLimit){
-    // Add the Ace of Hearts to the player's deck
+TEST_F(GameStateTests, UsableAceIsCorrectlyIncludedUpperLimit){
+    // Add the Ace of Hearts to the player's hand
     gs0.addCard(deck[0], true);
 
-    // Add the King of Hearts to the player's deck
+    // Add the King of Hearts to the player's hand
     gs0.addCard(deck[12], true);
 
     // The useable ace should be flagged
@@ -104,15 +100,15 @@ TEST_F(GameStateTest, UsableAceIsCorrectlyIncludedUpperLimit){
 }
 
 // The lowest limit of exclusion would be an Ace added to a hand of value 11
-TEST_F(GameStateTest, UsableAceIsCorrectlyExcludedLowerLimit){
+TEST_F(GameStateTests, UsableAceIsCorrectlyExcludedLowerLimit){
 
-    // Add the Ace of Hearts to the player's deck
+    // Add the Ace of Hearts to the player's hand
     gs0.addCard(deck[0], true);
 
-    // Add the Five of Hearts to the player's deck
+    // Add the Five of Hearts to the player's hand
     gs0.addCard(deck[4], true);
 
-    // Add the Six of Hearts to the player's deck
+    // Add the Six of Hearts to the player's hand
     gs0.addCard(deck[5], true);    
 
     // The ace should be flagged as unusable so as to not go bust
@@ -124,23 +120,23 @@ TEST_F(GameStateTest, UsableAceIsCorrectlyExcludedLowerLimit){
 }
 
 // When all aces are in a players deck it should be correctly handled in the game state
-TEST_F(GameStateTest, UsableAceIsCorrectlyExcludedWithAllAces){
-    // Add the Seven of Hearts to the player's deck
+TEST_F(GameStateTests, UsableAceIsCorrectlyExcludedWithAllAces){
+    // Add the Seven of Hearts to the player's hand
     gs0.addCard(deck[6], true);
 
-    // Add the Ten of Hearts to the player's deck
+    // Add the Ten of Hearts to the player's hand
     gs0.addCard(deck[9], true);
 
-    // Add the Ace of Hearts to the player's deck
+    // Add the Ace of Hearts to the player's hand
     gs0.addCard(deck[0], true);
 
-    // Add the Ace of Diamonds to the player's deck
+    // Add the Ace of Diamonds to the player's hand
     gs0.addCard(deck[13], true);
 
-    // Add the Ace of Clubs to the player's deck
+    // Add the Ace of Clubs to the player's hand
     gs0.addCard(deck[26], true);
 
-    // Add the Ace of Hearts to the player's deck
+    // Add the Ace of Hearts to the player's hand
     gs0.addCard(deck[39], true);
 
     // The useable ace should be flagged and the ace's value should be 14
@@ -151,15 +147,15 @@ TEST_F(GameStateTest, UsableAceIsCorrectlyExcludedWithAllAces){
 }
 
 // The lowest limit of exclusion would be an Ace added to a hand of value 11
-TEST_F(GameStateTest, UsableAceIsCorrectlyExcludedUpperLimit){
+TEST_F(GameStateTests, UsableAceIsCorrectlyExcludedUpperLimit){
 
-    // Add the Ace of Hearts to the player's deck
+    // Add the Ace of Hearts to the player's hand
     gs0.addCard(deck[0], true);
 
-    // Add the Queen of Hearts to the player's deck
+    // Add the Queen of Hearts to the player's hand
     gs0.addCard(deck[11], true);
 
-    // Add the King of Hearts to the player's deck
+    // Add the King of Hearts to the player's hand
     gs0.addCard(deck[12], true);    
 
     // The ace should be flagged as unusable so as to not go bust

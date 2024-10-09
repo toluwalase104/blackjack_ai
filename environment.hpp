@@ -13,11 +13,7 @@
 #include "game_assets.hpp"
 
 namespace environment {
-    const int DECK_SIZE = 52;
-
     const int MAX_PLAYER_TOTAL = 21, MAX_DEALER_SHOWING = 11, MAX_POSSIBLE_ACTIONS = 2, MAX_ACE_VALUE = 1;
-
-    const std::string POSSIBLE_SUITES = "HDSC";
 
     inline float getRandomFloat() {
         return (float)(rand()) / (float)(RAND_MAX);
@@ -98,8 +94,6 @@ namespace environment {
 
     class EnvironmentHandler {
     public:
-        std::vector<game_assets::Card> deck;
-
         EnvironmentHandler();
 
         /* Selects a card that has not been seen yet */

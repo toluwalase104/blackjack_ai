@@ -1,4 +1,5 @@
 #include "environment.hpp"
+
 #include <string>
 
 using std::cout;
@@ -96,7 +97,7 @@ std::vector<int> environment::GameState::getSeenCards() const{
     // Reserve enough space for both sets of cards
     result.reserve(numberOfSeenCards); 
 
-    for (int i = 0; i < DECK_SIZE; ++i){
+    for (int i = 0; i < game_assets::DECK_SIZE; ++i){
         if (playerCards[i] || dealerCards[i]){
             result.push_back(i);
         }
@@ -139,14 +140,14 @@ std::string environment::GameState::stringifyCards() {
         dealerCardStrings = "  Dealer cards = {\n";
 
     auto convertSuite = [&](int i) {
-        switch (POSSIBLE_SUITES[i / 13]) {
-        case 'H':
+        switch (game_assets::POSSIBLE_SUITES[i / 13]) {
+        case game_assets::Suite::HEARTS:
             return " of Hearts";
-        case 'D':
+        case game_assets::Suite::DIAMONDS:
             return " of Diamonds";
-        case 'S':
+        case game_assets::Suite::SPADES:
             return " of Spades";
-        case 'C':
+        case game_assets::Suite::CLUBS:
             return " of Clubs";
         default:
             return " game_assets::Suite was undefined ";
@@ -168,7 +169,7 @@ std::string environment::GameState::stringifyCards() {
         }
     };
     
-    for (int i = 0; i < environment::DECK_SIZE; ++i) {
+    for (int i = 0; i < game_assets::DECK_SIZE; ++i) {
         // Output only the seen cards
         if (playerCards[i]){
             playerCardStrings += "    " + convertFaceValue(i) + convertSuite(i) + "\n";
@@ -176,7 +177,7 @@ std::string environment::GameState::stringifyCards() {
     }
     playerCardStrings += "  }\n";
 
-    for (int i = 0; i < environment::DECK_SIZE; ++i) {
+    for (int i = 0; i < game_assets::DECK_SIZE; ++i) {
         // Output only the seen cards
         if (dealerCards[i]){
             dealerCardStrings += "    " + convertFaceValue(i) + convertSuite(i) + "\n";
@@ -206,18 +207,7 @@ bool environment::GameState::operator==(GameState comparedState) {
 }
 
 environment::EnvironmentHandler::EnvironmentHandler() {
-    // Defines the amount of space the deck will needed
-    deck.reserve(60);
-    deck.resize(52);
-    
-    numberOfRemainingCards = DECK_SIZE;
-
-    for (int i = 0; i < DECK_SIZE; ++i) {
-        // The minimum between 10 and the actual value is used because the maximum card value is 10 (excluding aces)
-        game_assets::CardVal currentCardVal = game_assets::CardVal(std::min(10, 1 + i % 13));
-        game_assets::Suite currentSuite = game_assets::Suite(POSSIBLE_SUITES[i / 13]);
-        deck[i] = game_assets::Card(i, currentCardVal, currentSuite);
-    }
+    numberOfRemainingCards = game_assets::DECK_SIZE;
 
     // Start the game with the initial player action being hit
     simulateNextRound(environment::Action::HIT);
@@ -246,7 +236,7 @@ int environment::EnvironmentHandler::selectOutOfRemainingCards() {
     // Search for the chosen index
     cout << "Enterring selection loop\n";
 
-    for (int i = 0; i < DECK_SIZE; ++i) {
+    for (int i = 0; i < game_assets::DECK_SIZE; ++i) {
         // If the current card has been seen skip it
         if (seenIDs.find(i) != seenIDs.end()) {
             continue;
@@ -267,6 +257,7 @@ int environment::EnvironmentHandler::selectOutOfRemainingCards() {
 
 /* Generates the required number of cards for the current game state */
 vector<game_assets::Card> environment::EnvironmentHandler::getNextHand() {
+    game_assets::Deck deck;
     vector<game_assets::Card> cardsDealt;
     vector<int> indicesChosen;
 

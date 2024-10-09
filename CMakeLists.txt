@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.30.0)
 project(blackjack_ai VERSION 0.1.0 LANGUAGES C CXX)
 
 add_executable(blackjack_ai agents.cpp environment.cpp game_assets.cpp main.cpp function.cpp)
@@ -31,6 +31,10 @@ enable_testing()
 #     hello_test
 #     hello_test.cc
 # )
+# target_link_libraries(
+#     hello_test
+#     GTest::gtest_main
+# )
 
 # Adds the necessary files for the environment unit test
 add_executable(
@@ -40,16 +44,39 @@ add_executable(
     game_assets.cpp
 )
 
-# target_link_libraries(
-#     hello_test
-#     GTest::gtest_main
-# )
 
 target_link_libraries(
     environment_unittest
     GTest::gtest_main
 )
 
+# Adds and links the necessary files for the function unit test
+add_executable(
+    function_unittest
+    function_unittest.cc
+    function.cpp
+    environment.cpp
+    game_assets.cpp
+)
+
+target_link_libraries(
+    function_unittest
+    GTest::gtest_main
+)
+
+# Adds and links the necessary files for the game_asset unit test
+add_executable(
+    game_assets_unittest
+    game_assets_unittest.cc
+    game_assets.cpp
+)
+
+target_link_libraries(
+    game_assets_unittest
+    GTest::gtest_main
+)
+
 include(GoogleTest)
-# gtest_discover_tests(hello_test environment_unittest)
+gtest_discover_tests(game_assets_unittest)
 gtest_discover_tests(environment_unittest)
+gtest_discover_tests(function_unittest)

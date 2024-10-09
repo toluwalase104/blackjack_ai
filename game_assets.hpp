@@ -5,8 +5,11 @@
 #define GAME_ASSETS_H
 
 #include <iostream>
+#include <array>
 
-namespace game_assets{
+namespace game_assets{  
+    const int DECK_SIZE = 52;
+
     /*  Currently Aces are treated as just 1 so additional features
         need to be implemented to handle usable Aces. */
     enum class CardVal :int {
@@ -24,11 +27,10 @@ namespace game_assets{
         CLUBS = 'C'
     };
 
+    /* Used for quick access to a suite given a card id */
+    const std::array<Suite, 4> POSSIBLE_SUITES = {Suite::HEARTS, Suite::DIAMONDS, Suite::SPADES, Suite::CLUBS};
+
     class Card {
-    private:
-        int id;
-        CardVal value;
-        Suite suite;
     public:
         Card();
 
@@ -39,6 +41,21 @@ namespace game_assets{
         CardVal getValue() const;
 
         Suite getSuite() const;
+    private:
+        int id;
+        CardVal value;
+        Suite suite;
+    };
+
+    // Consider reimplementing this to make Meyer's Singelton because there should only be one deck possible
+    // Creates a constant instance deck, for other files to use
+    class Deck {
+        public:
+            Deck();
+
+            Card operator[](int i) const;
+            
+            std::array<Card, DECK_SIZE> cards;        
     };
 
 }
